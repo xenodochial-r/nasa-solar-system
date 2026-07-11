@@ -27,8 +27,8 @@
         .tab-content.active { display: flex; }
 
         /* 3D Canvas */
-        #canvas-container { flex: 1; position: relative; }
-        #canvas-container canvas { display: block; }
+        #canvas-container { flex: 1; position: relative; min-height: 0; overflow: hidden; }
+        #canvas-container canvas { display: block; width: 100% !important; height: 100% !important; }
 
         /* UI Overlay - Bottom controls */
         #ui-overlay {
@@ -36,6 +36,7 @@
             background: rgba(5,5,15,0.88); border-radius: 12px;
             padding: 14px 20px; backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.08);
+            z-index: 10;
         }
         #ui-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
         #date-display {
@@ -215,8 +216,18 @@
     <script src="/static/js/ui.js"></script>
     <script src="/static/js/deviations.js"></script>
     <script>
-        initScene();
-        startAnimation();
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                try {
+                    initScene();
+                    startAnimation();
+                } catch(e) {
+                    console.error("Init failed:", e);
+                    document.getElementById("canvas-container").innerHTML =
+                        '<p style="color:red;padding:20px;">Error: ' + e.message + '</p>';
+                }
+            });
+        });
     </script>
 </body>
 </html>
