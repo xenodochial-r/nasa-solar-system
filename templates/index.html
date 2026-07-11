@@ -44,7 +44,7 @@
             color: #4fc3f7; font-variant-numeric: tabular-nums;
         }
         #speed-display { font-size: 12px; color: #888; min-width: 40px; text-align: center; }
-        #live-clock { font-size: 11px; color: #4fc3f7; font-variant-numeric: tabular-nums; opacity: 0.7; }
+        #live-clock { font-size: 12px; color: #4fc3f7; font-variant-numeric: tabular-nums; opacity: 0.9; background: rgba(79,195,247,0.1); padding: 2px 8px; border-radius: 4px; }
         .ui-btn {
             padding: 5px 12px; border: 1px solid #333; background: rgba(20,20,30,0.8);
             color: #ccc; border-radius: 6px; cursor: pointer; font-size: 12px;
@@ -211,10 +211,10 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
-    <!-- App Scripts -->
-    <script src="/static/js/planets.js"></script>
-    <script src="/static/js/main.js"></script>
-    <script src="/static/js/ui.js"></script>
+    <!-- App Scripts (cache-bust) -->
+    <script src="/static/js/planets.js?v=2"></script>
+    <script src="/static/js/main.js?v=2"></script>
+    <script src="/static/js/ui.js?v=2"></script>
     <script src="/static/js/deviations.js"></script>
     <script>
         requestAnimationFrame(function() {

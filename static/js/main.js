@@ -276,7 +276,7 @@ function animate() {
         if (isLive) {
             currentDate = new Date();
         } else {
-            currentDate = new Date(currentDate.getTime() + speed * 0.0167 * 86400000);
+            currentDate = new Date(currentDate.getTime() + speed * 0.003 * 86400000);
         }
         updatePlanetPositions(currentDate);
     }
