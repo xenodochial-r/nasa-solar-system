@@ -10,7 +10,6 @@
     const btnToday = document.getElementById("btn-today");
     const btnPause = document.getElementById("btn-pause");
     const btnReset = document.getElementById("btn-reset");
-    const granularitySelect = document.getElementById("granularity-select");
 
     const MIN_DATE = new Date("2000-01-01").getTime();
     const MAX_DATE = new Date("2027-07-11").getTime();
@@ -88,11 +87,6 @@
             if (typeof toggleLabels === "function") toggleLabels();
         });
     }
-
-    // Granularity
-    granularitySelect.addEventListener("change", () => {
-        // Granularity affects data loading, handled by main
-    });
 
     // Update date display in animation loop
     setInterval(() => {
