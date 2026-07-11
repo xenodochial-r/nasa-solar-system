@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+de421.bsp
+data/orbits.parquet
+data/predictions.parquet
+data/deviations.parquet

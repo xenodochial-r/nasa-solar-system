@@ -1,0 +1,7 @@
+astroquery>=0.4.12
+astropy
+pandas
+pyarrow
+skyfield
+matplotlib
+flask
