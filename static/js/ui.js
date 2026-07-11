@@ -95,7 +95,17 @@
     });
 
     // Update date display in animation loop
+    const liveClock = document.getElementById("live-clock");
     setInterval(() => {
+        // Live clock (real time)
+        if (liveClock) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, "0");
+            const mm = String(now.getMinutes()).padStart(2, "0");
+            const ss = String(now.getSeconds()).padStart(2, "0");
+            liveClock.textContent = `${hh}:${mm}:${ss}`;
+        }
+
         if (currentDate) {
             const y = currentDate.getFullYear();
             const m = String(currentDate.getMonth() + 1).padStart(2, "0");
@@ -110,7 +120,7 @@
                 timeSlider.value = Math.min(100, Math.max(0, pct * 100));
             }
         }
-    }, 100);
+    }, 1000);
 
     // Deviation table loader
     window.loadDeviations = function() {

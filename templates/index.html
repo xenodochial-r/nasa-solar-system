@@ -44,6 +44,7 @@
             color: #4fc3f7; font-variant-numeric: tabular-nums;
         }
         #speed-display { font-size: 12px; color: #888; min-width: 40px; text-align: center; }
+        #live-clock { font-size: 11px; color: #4fc3f7; font-variant-numeric: tabular-nums; opacity: 0.7; }
         .ui-btn {
             padding: 5px 12px; border: 1px solid #333; background: rgba(20,20,30,0.8);
             color: #ccc; border-radius: 6px; cursor: pointer; font-size: 12px;
@@ -145,6 +146,7 @@
                     <span id="date-display">2026-07-11</span>
                     <input type="range" id="time-slider" min="0" max="100" value="76">
                     <button class="ui-btn" id="btn-today">Today</button>
+                    <span id="live-clock"></span>
                     <button class="ui-btn" id="btn-pause">Pause</button>
                     <button class="ui-btn" id="btn-reset">Reset</button>
                     <button class="ui-btn active" id="btn-labels">Labels</button>
