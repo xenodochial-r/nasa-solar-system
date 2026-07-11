@@ -257,8 +257,8 @@ function createPlanets() {
         div.style.opacity = "0.9";
         const label = new THREE.CSS2DObject(div);
         label.position.set(0, meshSize + 0.6, 0);
-        label.userData = { isLabel: true };
-        mesh.add(label);
+        label.userData = { isLabel: true, planetKey: key };
+        scene.add(label);
         planetLabels.push(label);
 
         // Orbit line with inclination
@@ -316,6 +316,20 @@ function updatePlanetPositions(date) {
 
         // Self-rotation (slow spin based on time)
         mesh.rotation.y += 0.002 * speed;
+    }
+
+    // Update label positions (labels are in scene, not children of meshes)
+    for (const label of planetLabels) {
+        const key = label.userData.planetKey;
+        if (key && planetMeshes[key]) {
+            const mesh = planetMeshes[key];
+            const meshSize = PLANETS[key].size * 0.35;
+            label.position.set(
+                mesh.position.x,
+                mesh.position.y + meshSize + 0.6,
+                mesh.position.z
+            );
+        }
     }
 }
 
