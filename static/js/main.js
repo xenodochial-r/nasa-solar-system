@@ -26,6 +26,8 @@ let selectedPlanet = null;
 let cameraTarget = null;
 let cameraTargetLook = null;
 let isAnimatingCamera = false;
+let labelsVisible = true;
+let planetLabels = [];
 
 function initScene() {
     const container = document.getElementById("canvas-container");
@@ -77,10 +79,11 @@ function initScene() {
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.minDistance = 3;
-    controls.maxDistance = 800;
+    controls.minDistance = 2;
+    controls.maxDistance = 1500;
     controls.enablePan = true;
-    controls.zoomSpeed = 1.2;
+    controls.zoomSpeed = 2.0;
+    controls.rotateSpeed = 0.8;
 
     // Sun light (directional from center)
     sunLight = new THREE.PointLight(0xffffff, 2.5, 2000, 0.5);
@@ -254,7 +257,9 @@ function createPlanets() {
         div.style.opacity = "0.9";
         const label = new THREE.CSS2DObject(div);
         label.position.set(0, meshSize + 0.6, 0);
+        label.userData = { isLabel: true };
         mesh.add(label);
+        planetLabels.push(label);
 
         // Orbit line with inclination
         const orbitPoints = orbitPath(planet, 256);
@@ -265,7 +270,7 @@ function createPlanets() {
         const orbitMat = new THREE.LineBasicMaterial({
             color: planet.color,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.10,
             linewidth: 1,
         });
         const orbitLine = new THREE.Line(orbitGeo, orbitMat);
@@ -442,7 +447,7 @@ function selectPlanet(key, planet, mesh) {
 
     // Highlight orbit line
     for (const [k, line] of Object.entries(orbitLines)) {
-        line.material.opacity = k === key ? 0.6 : 0.08;
+        line.material.opacity = k === key ? 0.5 : 0.05;
     }
 }
 
@@ -453,11 +458,23 @@ function deselectPlanet() {
 
     // Reset orbits
     for (const line of Object.values(orbitLines)) {
-        line.material.opacity = 0.18;
+        line.material.opacity = 0.10;
     }
 
     // Fly back to overview
     cameraTarget = new THREE.Vector3(0, 60, 120);
     cameraTargetLook = new THREE.Vector3(0, 0, 0);
     isAnimatingCamera = true;
+}
+
+// ---------------------------------------------------------------------------
+//  LABEL TOGGLE
+// ---------------------------------------------------------------------------
+function toggleLabels() {
+    labelsVisible = !labelsVisible;
+    for (const label of planetLabels) {
+        label.visible = labelsVisible;
+    }
+    const btn = document.getElementById("btn-labels");
+    if (btn) btn.classList.toggle("active", labelsVisible);
 }
