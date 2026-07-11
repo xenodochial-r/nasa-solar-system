@@ -11,17 +11,16 @@
 
         /* Tab bar */
         #tab-bar {
-            display: flex; background: #111; border-bottom: 1px solid #333;
-            z-index: 100; position: relative;
+            display: flex; background: rgba(10,10,10,0.95); border-bottom: 1px solid #222;
+            z-index: 100; position: relative; backdrop-filter: blur(8px);
         }
         .tab-btn {
-            padding: 10px 24px; background: none; border: none; color: #888;
-            cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent;
-            transition: all 0.2s;
+            padding: 10px 24px; background: none; border: none; color: #666;
+            cursor: pointer; font-size: 13px; letter-spacing: 0.5px;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
         }
-        .tab-btn:hover { color: #fff; }
+        .tab-btn:hover { color: #ccc; }
         .tab-btn.active { color: #4fc3f7; border-bottom-color: #4fc3f7; }
-        .tab-btn.disabled { opacity: 0.4; cursor: not-allowed; }
 
         /* Tab content */
         .tab-content { display: none; flex: 1; position: relative; }
@@ -29,41 +28,72 @@
 
         /* 3D Canvas */
         #canvas-container { flex: 1; position: relative; }
-        #canvas-container canvas { width: 100%; height: 100%; }
+        #canvas-container canvas { display: block; }
 
-        /* UI Overlay */
+        /* UI Overlay - Bottom controls */
         #ui-overlay {
             position: absolute; bottom: 20px; left: 20px; right: 20px;
-            background: rgba(0,0,0,0.85); border-radius: 12px;
-            padding: 16px 20px; backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(5,5,15,0.88); border-radius: 12px;
+            padding: 14px 20px; backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
         }
-        #ui-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-        #date-display { font-size: 18px; font-weight: 600; min-width: 160px; color: #4fc3f7; }
-        #speed-display { font-size: 13px; color: #aaa; min-width: 60px; }
+        #ui-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        #date-display {
+            font-size: 16px; font-weight: 600; min-width: 150px;
+            color: #4fc3f7; font-variant-numeric: tabular-nums;
+        }
+        #speed-display { font-size: 12px; color: #888; min-width: 40px; text-align: center; }
         .ui-btn {
-            padding: 6px 14px; border: 1px solid #444; background: #222;
-            color: #ddd; border-radius: 6px; cursor: pointer; font-size: 13px;
+            padding: 5px 12px; border: 1px solid #333; background: rgba(20,20,30,0.8);
+            color: #ccc; border-radius: 6px; cursor: pointer; font-size: 12px;
+            transition: all 0.15s; font-family: inherit;
         }
-        .ui-btn:hover { background: #333; border-color: #4fc3f7; }
-        .ui-btn.active { background: #1a5276; border-color: #4fc3f7; color: #4fc3f7; }
+        .ui-btn:hover { background: #1a2a3a; border-color: #4fc3f7; color: #fff; }
+        .ui-btn.active { background: #0d3b5a; border-color: #4fc3f7; color: #4fc3f7; }
         #time-slider { flex: 1; min-width: 200px; accent-color: #4fc3f7; }
-        #speed-slider { width: 100px; accent-color: #4fc3f7; }
-        #granularity-select { background: #222; color: #ddd; border: 1px solid #444; padding: 4px 8px; border-radius: 4px; }
+        #speed-slider { width: 80px; accent-color: #4fc3f7; }
+
+        /* Info Panel - Right side */
+        #info-panel {
+            position: absolute; top: 20px; right: 20px; width: 280px;
+            background: rgba(5,5,15,0.92); border-radius: 12px;
+            padding: 0; backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            transform: translateX(320px); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+        }
+        #info-panel.visible { transform: translateX(0); }
+        .info-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .info-name { font-size: 16px; font-weight: 600; color: #4fc3f7; }
+        .info-close {
+            background: none; border: none; color: #666; font-size: 20px;
+            cursor: pointer; padding: 0 4px; line-height: 1;
+        }
+        .info-close:hover { color: #fff; }
+        .info-row {
+            display: flex; justify-content: space-between; padding: 8px 18px;
+            font-size: 12px; color: #999; border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        .info-row span:last-child { color: #ddd; font-weight: 500; font-variant-numeric: tabular-nums; }
 
         /* Deviations Tab */
         #deviations-tab {
-            flex-direction: column; padding: 20px; overflow-y: auto;
-            background: #0a0a0a;
+            flex-direction: column; padding: 20px; overflow-y: auto; background: #0a0a0a;
         }
-        #deviations-tab h2 { color: #4fc3f7; margin-bottom: 16px; }
+        #deviations-tab h2 { color: #4fc3f7; margin-bottom: 16px; font-size: 18px; }
         .dev-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-        .dev-table th { text-align: left; padding: 8px 12px; background: #1a1a1a; color: #aaa; font-size: 12px; text-transform: uppercase; }
-        .dev-table td { padding: 10px 12px; border-bottom: 1px solid #222; }
+        .dev-table th {
+            text-align: left; padding: 8px 12px; background: #111;
+            color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .dev-table td { padding: 10px 12px; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
         .dev-table tr { cursor: pointer; }
-        .dev-table tr:hover { background: #1a2a3a; }
-        .dev-bar { height: 6px; border-radius: 3px; background: #333; }
-        .dev-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .dev-table tr:hover { background: #0d1a2a; }
+        .dev-bar { height: 4px; border-radius: 2px; background: #1a1a1a; }
+        .dev-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
         .dev-chart-container { width: 100%; max-width: 800px; margin: 0 auto; }
         #dev-chart { width: 100%; height: 300px; }
 
@@ -73,12 +103,24 @@
             background: #0a0a0a; text-align: center;
         }
         .spice-placeholder {
-            max-width: 500px; padding: 40px; border: 2px dashed #333;
-            border-radius: 16px; background: #111;
+            max-width: 500px; padding: 40px; border: 2px dashed #222;
+            border-radius: 16px; background: #0d0d0d;
         }
-        .spice-placeholder h2 { color: #666; margin-bottom: 12px; }
-        .spice-placeholder p { color: #555; line-height: 1.6; }
-        .spice-badge { display: inline-block; padding: 4px 12px; background: #333; color: #888; border-radius: 12px; font-size: 12px; margin-top: 16px; }
+        .spice-placeholder h2 { color: #555; margin-bottom: 12px; font-size: 18px; }
+        .spice-placeholder p { color: #444; line-height: 1.6; font-size: 14px; }
+        .spice-badge {
+            display: inline-block; padding: 4px 14px; background: #1a1a1a;
+            color: #666; border-radius: 12px; font-size: 11px; margin-top: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Attribution */
+        #attribution {
+            position: absolute; bottom: 80px; left: 20px;
+            font-size: 10px; color: #333; z-index: 10;
+        }
+        #attribution a { color: #444; text-decoration: none; }
+        #attribution a:hover { color: #666; }
     </style>
 </head>
 <body>
@@ -93,15 +135,15 @@
         <!-- Tab 1: 3D Simulation -->
         <div id="simulation-tab" class="tab-content active">
             <div id="canvas-container"></div>
+            <div id="info-panel"></div>
+            <div id="attribution">
+                Textures: <a href="https://www.solarsystemscope.com" target="_blank">Solar System Scope</a> (CC-BY 4.0)
+            </div>
             <div id="ui-overlay">
                 <div id="ui-row">
                     <span id="date-display">2026-07-11</span>
                     <input type="range" id="time-slider" min="0" max="100" value="76">
-                    <select id="granularity-select">
-                        <option value="monthly">Monthly</option>
-                        <option value="minute" selected>Minute</option>
-                    </select>
-                    <button class="ui-btn" id="btn-today">Today (Live)</button>
+                    <button class="ui-btn" id="btn-today">Today</button>
                     <button class="ui-btn" id="btn-pause">Pause</button>
                     <button class="ui-btn" id="btn-reset">Reset</button>
                     <input type="range" id="speed-slider" min="0" max="5" value="1" step="0.5">
@@ -125,7 +167,7 @@
                 <tbody id="dev-table-body"></tbody>
             </table>
             <div class="dev-chart-container">
-                <h3 id="dev-chart-title" style="color:#aaa;margin-bottom:8px;">Select a planet above</h3>
+                <h3 id="dev-chart-title" style="color:#888;margin-bottom:8px;font-size:14px;">Select a planet above</h3>
                 <canvas id="dev-chart"></canvas>
             </div>
         </div>
@@ -139,21 +181,29 @@
                     orbital calculations including gravitational perturbations<br>
                     from all solar system bodies.
                 </p>
-                <p style="margin-top:16px;color:#444;">
+                <p style="margin-top:16px;color:#333;">
                     Planned features:<br>
                     - SPICE kernel downloads (de440.bsp)<br>
                     - Perturbed orbit calculations<br>
                     - Higher accuracy than Kepler model
                 </p>
-                <div class="spice-badge">Coming Soon</div>
+                <div class="spice-badge">COMING SOON</div>
             </div>
         </div>
     </div>
 
-    <!-- Three.js (v0.137 - last version with non-module examples/js/) -->
+    <!-- Three.js v0.137 (last non-module version) -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/renderers/CSS2DRenderer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Post-processing: Bloom -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
