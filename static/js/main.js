@@ -379,3 +379,18 @@ function toggleLabels() {
     const btn = document.getElementById("btn-labels");
     if (btn) btn.classList.toggle("active", labelsVisible);
 }
+
+// ---------------------------------------------------------------------------
+//  ORBIT TOGGLE
+// ---------------------------------------------------------------------------
+function toggleOrbit(key) {
+    if (orbitLines[key]) {
+        orbitLines[key].visible = !orbitLines[key].visible;
+    }
+}
+
+function setOrbitVisible(key, visible) {
+    if (orbitLines[key]) {
+        orbitLines[key].visible = visible;
+    }
+}

@@ -88,6 +88,55 @@
         });
     }
 
+    // Orbit toggle panel
+    const btnOrbits = document.getElementById("btn-orbits");
+    const orbitPanel = document.getElementById("orbit-panel");
+    const orbitCheckboxes = document.getElementById("orbit-checkboxes");
+    const MINOR_BODIES = ["pluto","ceres","vesta","eris","haumea","makemake"];
+
+    if (btnOrbits && orbitPanel) {
+        btnOrbits.addEventListener("click", (e) => {
+            e.stopPropagation();
+            orbitPanel.classList.toggle("open");
+        });
+
+        for (const [key, planet] of Object.entries(PLANETS)) {
+            const label = document.createElement("label");
+            label.className = "orbit-cb-label";
+            const cb = document.createElement("input");
+            cb.type = "checkbox";
+            cb.checked = !MINOR_BODIES.includes(key);
+            cb.dataset.orbit = key;
+            cb.addEventListener("change", () => {
+                if (typeof setOrbitVisible === "function") setOrbitVisible(key, cb.checked);
+            });
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(" " + planet.name));
+            orbitCheckboxes.appendChild(label);
+        }
+
+        document.getElementById("orbits-all").addEventListener("click", (e) => {
+            e.stopPropagation();
+            orbitCheckboxes.querySelectorAll("input[type=checkbox]").forEach(cb => {
+                cb.checked = true;
+                if (typeof setOrbitVisible === "function") setOrbitVisible(cb.dataset.orbit, true);
+            });
+        });
+        document.getElementById("orbits-none").addEventListener("click", (e) => {
+            e.stopPropagation();
+            orbitCheckboxes.querySelectorAll("input[type=checkbox]").forEach(cb => {
+                cb.checked = false;
+                if (typeof setOrbitVisible === "function") setOrbitVisible(cb.dataset.orbit, false);
+            });
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!orbitPanel.contains(e.target) && e.target !== btnOrbits) {
+                orbitPanel.classList.remove("open");
+            }
+        });
+    }
+
     // Update date display in animation loop
     setInterval(() => {
         if (currentDate) {

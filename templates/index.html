@@ -54,6 +54,28 @@
         #time-slider { flex: 1; min-width: 200px; accent-color: #4fc3f7; }
         #speed-slider { width: 80px; accent-color: #4fc3f7; }
 
+        /* Orbit Toggle Panel */
+        .orbit-panel {
+            display: none; position: absolute; bottom: 60px; left: 20px;
+            background: rgba(5,5,15,0.95); border-radius: 10px;
+            padding: 12px 16px; backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08); z-index: 20; min-width: 320px;
+        }
+        .orbit-panel.open { display: block; }
+        .orbit-panel-header { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 12px; color: #888; }
+        .orbit-panel-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 12px; }
+        .orbit-toggle-all {
+            font-size: 10px; padding: 2px 8px; border: 1px solid #333; background: #1a1a2a;
+            color: #aaa; border-radius: 4px; cursor: pointer;
+        }
+        .orbit-toggle-all:hover { border-color: #4fc3f7; color: #fff; }
+        .orbit-cb-label {
+            font-size: 11px; color: #aaa; cursor: pointer;
+            display: flex; align-items: center; gap: 4px; white-space: nowrap;
+        }
+        .orbit-cb-label:hover { color: #ddd; }
+        .orbit-cb-label input[type="checkbox"] { accent-color: #4fc3f7; cursor: pointer; }
+
         /* Info Panel - Right side */
         #info-panel {
             position: absolute; top: 20px; right: 20px; width: 280px;
@@ -148,8 +170,17 @@
                     <button class="ui-btn" id="btn-pause">Pause</button>
                     <button class="ui-btn" id="btn-reset">Reset</button>
                     <button class="ui-btn active" id="btn-labels">Labels</button>
+                    <button class="ui-btn" id="btn-orbits">Orbits ▾</button>
                     <input type="range" id="speed-slider" min="0" max="5" value="1" step="0.5">
                     <span id="speed-display">1x</span>
+                </div>
+                <div class="orbit-panel" id="orbit-panel">
+                    <div class="orbit-panel-header">
+                        <span>Show Orbits</span>
+                        <button class="orbit-toggle-all" id="orbits-all">All</button>
+                        <button class="orbit-toggle-all" id="orbits-none">None</button>
+                    </div>
+                    <div class="orbit-panel-grid" id="orbit-checkboxes"></div>
                 </div>
             </div>
         </div>
