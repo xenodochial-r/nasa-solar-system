@@ -340,10 +340,12 @@ function animate() {
     animationId = requestAnimationFrame(animate);
 
     if (!paused) {
-        const msPerFrame = 1000 / 60;
-        // 1 speed = ~1 day per second (60fps = ~0.0167 days per frame)
-        const daysPerFrame = speed * 0.0167;
-        currentDate = new Date(currentDate.getTime() + daysPerFrame * 86400000);
+        if (isLive) {
+            currentDate = new Date();
+        } else {
+            const daysPerFrame = speed * 0.0167;
+            currentDate = new Date(currentDate.getTime() + daysPerFrame * 86400000);
+        }
         updatePlanetPositions(currentDate);
     }
 

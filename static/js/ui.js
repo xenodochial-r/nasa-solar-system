@@ -81,6 +81,14 @@
         timeSlider.value = 76;
     });
 
+    // Labels toggle
+    const btnLabels = document.getElementById("btn-labels");
+    if (btnLabels) {
+        btnLabels.addEventListener("click", () => {
+            if (typeof toggleLabels === "function") toggleLabels();
+        });
+    }
+
     // Granularity
     granularitySelect.addEventListener("change", () => {
         // Granularity affects data loading, handled by main
