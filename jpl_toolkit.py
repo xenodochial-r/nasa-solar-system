@@ -307,9 +307,10 @@ class JPLPlanetToolkit:
         df_monthly = self.compute_monthly(2000, 2024)
         print(f"Monthly: {len(df_monthly)} rows")
         monthly_path = os.path.join(tmp_dir, "monthly.parquet")
-        df_monthly.to_parquet(monthly_path, index=False)
+        table_monthly = pa.Table.from_pandas(df_monthly, preserve_index=False).cast(schema)
+        pq.write_table(table_monthly, monthly_path)
         chunk_files.append(monthly_path)
-        del df_monthly
+        del df_monthly, table_monthly
         gc.collect()
 
         # 2. Minute data - historical (Jul 2024 - Jul 2026) - chunked
@@ -326,7 +327,15 @@ class JPLPlanetToolkit:
 
         # Combine all orbit chunks into final parquet
         print("Combining all orbit data...")
-        tables = [pq.read_table(f) for f in chunk_files]
+        target_schema = pa.schema([
+            ("planet", pa.string()),
+            ("date", pa.timestamp("ns")),
+            ("x", pa.float64()),
+            ("y", pa.float64()),
+            ("z", pa.float64()),
+            ("resolution", pa.string()),
+        ])
+        tables = [pq.read_table(f).cast(target_schema) for f in chunk_files]
         df_orbits = pa.concat_tables(tables).to_pandas()
         df_orbits.to_parquet(ORBITS_PARQUET, index=False)
         size_mb = os.path.getsize(ORBITS_PARQUET) / (1024 * 1024)
