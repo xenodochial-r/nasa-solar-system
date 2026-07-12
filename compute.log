@@ -1,0 +1,36 @@
+Loading Skyfield ephemeris (de421.bsp)...
+Ready.
+============================================================
+JPL PLANET TOOLKIT - Full Compute
+============================================================
+Computing monthly orbits 2000-01 to 2024-12...
+  Monthly: 12/300 months done
+  Monthly: 24/300 months done
+  Monthly: 36/300 months done
+  Monthly: 48/300 months done
+  Monthly: 60/300 months done
+  Monthly: 72/300 months done
+  Monthly: 84/300 months done
+  Monthly: 96/300 months done
+  Monthly: 108/300 months done
+  Monthly: 120/300 months done
+  Monthly: 132/300 months done
+  Monthly: 144/300 months done
+  Monthly: 156/300 months done
+  Monthly: 168/300 months done
+  Monthly: 180/300 months done
+  Monthly: 192/300 months done
+  Monthly: 204/300 months done
+  Monthly: 216/300 months done
+  Monthly: 228/300 months done
+  Monthly: 240/300 months done
+  Monthly: 252/300 months done
+  Monthly: 264/300 months done
+  Monthly: 276/300 months done
+  Monthly: 288/300 months done
+  Monthly: 300/300 months done
+Monthly: 4200 rows
+Computing minute data: 2024-07-01 00:00:00 to 2026-07-11 00:00:00...
+  minute chunk 1: 2024-07-01 to 2024-07-30 (0%)
+    wrote 43200 minutes, 604800 rows
+  minute chunk 2: 2024-07-31 to 2024-08-29 (4%)

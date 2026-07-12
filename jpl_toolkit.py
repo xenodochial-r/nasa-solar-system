@@ -13,11 +13,15 @@ Modes:
 
 import os
 import sys
+import gc
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from skyfield.api import load
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -135,25 +139,71 @@ class JPLPlanetToolkit:
     def compute_minute_range(self, start_dt, stop_dt, label="minute"):
         print(f"Computing {label} data: {start_dt} to {stop_dt}...")
         total_minutes = int((stop_dt - start_dt).total_seconds() / 60)
-        rows = []
-        count = 0
-        current = start_dt
-        while current <= stop_dt:
-            for planet_name in PLANET_MAP:
-                x, y, z = self.get_position(planet_name, current)
-                rows.append({
-                    "planet": planet_name,
-                    "date": pd.Timestamp(current),
-                    "x": x, "y": y, "z": z,
-                    "resolution": label
-                })
-            count += 1
-            if count % 10000 == 0:
-                pct = count / total_minutes * 100
-                print(f"  {label}: {count}/{total_minutes} minutes ({pct:.1f}%)")
-            current += timedelta(minutes=1)
-        df = pd.DataFrame(rows)
-        return df
+
+        schema = pa.schema([
+            ("planet", pa.string()),
+            ("date", pa.timestamp("ns")),
+            ("x", pa.float64()),
+            ("y", pa.float64()),
+            ("z", pa.float64()),
+            ("resolution", pa.string()),
+        ])
+
+        tmp_dir = tempfile.mkdtemp(prefix="jpl_")
+        chunk_files = []
+        CHUNK_MINUTES = 60 * 24 * 30  # ~1 month chunks
+
+        chunk_start = start_dt
+        chunk_idx = 0
+        while chunk_start <= stop_dt:
+            chunk_end = min(chunk_start + timedelta(minutes=CHUNK_MINUTES - 1), stop_dt)
+            print(f"  {label} chunk {chunk_idx}: {chunk_start.date()} to {chunk_end.date()}")
+
+            planets = []
+            dates = []
+            xs = []
+            ys = []
+            zs = []
+            res = []
+            current = chunk_start
+            count = 0
+            while current <= chunk_end:
+                ts = pd.Timestamp(current)
+                for planet_name in PLANET_MAP:
+                    x, y, z = self.get_position(planet_name, current)
+                    planets.append(planet_name)
+                    dates.append(ts)
+                    xs.append(x)
+                    ys.append(y)
+                    zs.append(z)
+                    res.append(label)
+                count += 1
+                current += timedelta(minutes=1)
+
+            table = pa.table({
+                "planet": pa.array(planets, type=pa.string()),
+                "date": pa.array(dates, type=pa.timestamp("ns")),
+                "x": pa.array(xs, type=pa.float64()),
+                "y": pa.array(ys, type=pa.float64()),
+                "z": pa.array(zs, type=pa.float64()),
+                "resolution": pa.array(res, type=pa.string()),
+            })
+            chunk_path = os.path.join(tmp_dir, f"chunk_{chunk_idx:04d}.parquet")
+            pq.write_table(table, chunk_path)
+            chunk_files.append(chunk_path)
+            print(f"    wrote {count} minutes, {count * len(PLANET_MAP)} rows")
+            del rows, table
+            gc.collect()
+
+            chunk_start = chunk_end + timedelta(minutes=1)
+            chunk_idx += 1
+
+        combined = pq.read_tables(chunk_files)
+        final = pa.concat_tables(combined)
+        for f in chunk_files:
+            os.remove(f)
+        os.rmdir(tmp_dir)
+        return final.to_pandas()
 
     def compute_kepler_prediction(self, planet_name, dt):
         meta = PLANET_META[planet_name]
@@ -169,24 +219,59 @@ class JPLPlanetToolkit:
     def compute_predictions(self, start_dt, stop_dt):
         print(f"Computing Kepler predictions: {start_dt} to {stop_dt}...")
         total_minutes = int((stop_dt - start_dt).total_seconds() / 60)
-        rows = []
-        count = 0
-        current = start_dt
-        while current <= stop_dt:
-            for planet_name in PLANET_MAP:
-                x, y, z = self.compute_kepler_prediction(planet_name, current)
-                rows.append({
-                    "planet": planet_name,
-                    "date": pd.Timestamp(current),
-                    "x_pred": x, "y_pred": y, "z_pred": z,
-                })
-            count += 1
-            if count % 10000 == 0:
-                pct = count / total_minutes * 100
-                print(f"  predictions: {count}/{total_minutes} minutes ({pct:.1f}%)")
-            current += timedelta(minutes=1)
-        df = pd.DataFrame(rows)
-        return df
+
+        tmp_dir = tempfile.mkdtemp(prefix="jpl_pred_")
+        chunk_files = []
+        CHUNK_MINUTES = 60 * 24 * 30
+
+        chunk_start = start_dt
+        chunk_idx = 0
+        while chunk_start <= stop_dt:
+            chunk_end = min(chunk_start + timedelta(minutes=CHUNK_MINUTES - 1), stop_dt)
+            print(f"  predictions chunk {chunk_idx}: {chunk_start.date()} to {chunk_end.date()}")
+
+            planets = []
+            dates = []
+            xs = []
+            ys = []
+            zs = []
+            current = chunk_start
+            count = 0
+            while current <= chunk_end:
+                ts = pd.Timestamp(current)
+                for planet_name in PLANET_MAP:
+                    x, y, z = self.compute_kepler_prediction(planet_name, current)
+                    planets.append(planet_name)
+                    dates.append(ts)
+                    xs.append(x)
+                    ys.append(y)
+                    zs.append(z)
+                count += 1
+                current += timedelta(minutes=1)
+
+            table = pa.table({
+                "planet": pa.array(planets, type=pa.string()),
+                "date": pa.array(dates, type=pa.timestamp("ns")),
+                "x_pred": pa.array(xs, type=pa.float64()),
+                "y_pred": pa.array(ys, type=pa.float64()),
+                "z_pred": pa.array(zs, type=pa.float64()),
+            })
+            chunk_path = os.path.join(tmp_dir, f"chunk_{chunk_idx:04d}.parquet")
+            pq.write_table(table, chunk_path)
+            chunk_files.append(chunk_path)
+            print(f"    wrote {count} minutes, {count * len(PLANET_MAP)} rows")
+            del planets, dates, xs, ys, zs, table
+            gc.collect()
+
+            chunk_start = chunk_end + timedelta(minutes=1)
+            chunk_idx += 1
+
+        combined = pq.read_tables(chunk_files)
+        final = pa.concat_tables(combined)
+        for f in chunk_files:
+            os.remove(f)
+        os.rmdir(tmp_dir)
+        return final.to_pandas()
 
     def export_planets_metadata(self):
         rows = []
@@ -206,33 +291,60 @@ class JPLPlanetToolkit:
         print("JPL PLANET TOOLKIT - Full Compute")
         print("=" * 60)
 
-        # 1. Monthly data (2000-2024)
+        schema = pa.schema([
+            ("planet", pa.string()),
+            ("date", pa.timestamp("ns")),
+            ("x", pa.float64()),
+            ("y", pa.float64()),
+            ("z", pa.float64()),
+            ("resolution", pa.string()),
+        ])
+
+        tmp_dir = tempfile.mkdtemp(prefix="jpl_all_")
+        chunk_files = []
+
+        # 1. Monthly data (2000-2024) - small, ~4200 rows
         df_monthly = self.compute_monthly(2000, 2024)
         print(f"Monthly: {len(df_monthly)} rows")
+        monthly_path = os.path.join(tmp_dir, "monthly.parquet")
+        df_monthly.to_parquet(monthly_path, index=False)
+        chunk_files.append(monthly_path)
+        del df_monthly
+        gc.collect()
 
-        # 2. Minute data - historical (Jul 2024 - Jul 2026)
-        df_minute_hist = self.compute_minute_range(
-            datetime(2024, 7, 1), datetime(2026, 7, 11), label="minute"
+        # 2. Minute data - historical (Jul 2024 - Jul 2026) - chunked
+        self._compute_minute_to_chunks(
+            datetime(2024, 7, 1), datetime(2026, 7, 11),
+            "minute", tmp_dir, chunk_files, schema
         )
-        print(f"Minute (historical): {len(df_minute_hist)} rows")
 
-        # 3. Minute data - future (Jul 2026 - Jul 2027)
-        df_minute_future = self.compute_minute_range(
-            datetime(2026, 7, 12), datetime(2027, 7, 11), label="minute"
+        # 3. Minute data - future (Jul 2026 - Jul 2027) - chunked
+        self._compute_minute_to_chunks(
+            datetime(2026, 7, 12), datetime(2027, 7, 11),
+            "minute", tmp_dir, chunk_files, schema
         )
-        print(f"Minute (future): {len(df_minute_future)} rows")
 
-        # Combine all orbits
-        df_orbits = pd.concat([df_monthly, df_minute_hist, df_minute_future], ignore_index=True)
+        # Combine all orbit chunks into final parquet
+        print("Combining all orbit data...")
+        tables = [pq.read_table(f) for f in chunk_files]
+        df_orbits = pa.concat_tables(tables).to_pandas()
         df_orbits.to_parquet(ORBITS_PARQUET, index=False)
         size_mb = os.path.getsize(ORBITS_PARQUET) / (1024 * 1024)
         print(f"Saved orbits.parquet: {len(df_orbits)} rows, {size_mb:.1f} MB")
+        del df_orbits, tables
+        gc.collect()
+
+        # Cleanup orbit chunks
+        for f in chunk_files:
+            os.remove(f)
 
         # 4. Predictions (Kepler only, Jul 2026 - Jul 2027)
         df_pred = self.compute_predictions(datetime(2026, 7, 12), datetime(2027, 7, 11))
         df_pred.to_parquet(PREDICTIONS_PARQUET, index=False)
         size_mb = os.path.getsize(PREDICTIONS_PARQUET) / (1024 * 1024)
         print(f"Saved predictions.parquet: {len(df_pred)} rows, {size_mb:.1f} MB")
+        del df_pred
+        gc.collect()
 
         # 5. Planet metadata
         df_meta = self.export_planets_metadata()
@@ -246,6 +358,62 @@ class JPLPlanetToolkit:
                 "x_predicted", "y_predicted", "z_predicted", "deviation_km"
             ]).to_parquet(DEVIATIONS_PARQUET, index=False)
             print("Created empty deviations.parquet")
+
+        os.rmdir(tmp_dir)
+        print("=" * 60)
+        print("ALL DONE!")
+        print("=" * 60)
+
+    def _compute_minute_to_chunks(self, start_dt, stop_dt, label, tmp_dir, chunk_files, schema):
+        print(f"Computing {label} data: {start_dt} to {stop_dt}...")
+        total_minutes = int((stop_dt - start_dt).total_seconds() / 60)
+        CHUNK_MINUTES = 60 * 24 * 30  # ~1 month
+
+        chunk_start = start_dt
+        chunk_idx = len(chunk_files)
+        while chunk_start <= stop_dt:
+            chunk_end = min(chunk_start + timedelta(minutes=CHUNK_MINUTES - 1), stop_dt)
+            pct_start = (chunk_start - start_dt).total_seconds() / 60 / total_minutes * 100
+            print(f"  {label} chunk {chunk_idx}: {chunk_start.date()} to {chunk_end.date()} ({pct_start:.0f}%)")
+
+            planets = []
+            dates = []
+            xs = []
+            ys = []
+            zs = []
+            res = []
+            current = chunk_start
+            count = 0
+            while current <= chunk_end:
+                ts = pd.Timestamp(current)
+                for planet_name in PLANET_MAP:
+                    x, y, z = self.get_position(planet_name, current)
+                    planets.append(planet_name)
+                    dates.append(ts)
+                    xs.append(x)
+                    ys.append(y)
+                    zs.append(z)
+                    res.append(label)
+                count += 1
+                current += timedelta(minutes=1)
+
+            table = pa.table({
+                "planet": pa.array(planets, type=pa.string()),
+                "date": pa.array(dates, type=pa.timestamp("ns")),
+                "x": pa.array(xs, type=pa.float64()),
+                "y": pa.array(ys, type=pa.float64()),
+                "z": pa.array(zs, type=pa.float64()),
+                "resolution": pa.array(res, type=pa.string()),
+            })
+            chunk_path = os.path.join(tmp_dir, f"orbit_{chunk_idx:04d}.parquet")
+            pq.write_table(table, chunk_path)
+            chunk_files.append(chunk_path)
+            print(f"    wrote {count} minutes, {count * len(PLANET_MAP)} rows")
+            del planets, dates, xs, ys, zs, res, table
+            gc.collect()
+
+            chunk_start = chunk_end + timedelta(minutes=1)
+            chunk_idx += 1
 
         print("=" * 60)
         print("ALL DONE!")
