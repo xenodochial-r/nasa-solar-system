@@ -5,3 +5,4 @@ de421.bsp
 data/orbits.parquet
 data/predictions.parquet
 data/deviations.parquet
+compute.log
