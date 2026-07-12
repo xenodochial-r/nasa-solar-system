@@ -157,6 +157,9 @@
     }, 250);
 
     // Deviation table loader
+    let devInterval = null;
+    let selectedDevPlanet = null;
+
     window.loadDeviations = function() {
         fetch("/api/planets")
             .then(r => r.json())
@@ -166,60 +169,129 @@
                 planets.forEach(p => {
                     const tr = document.createElement("tr");
                     tr.dataset.planet = p.planet;
+                    if (selectedDevPlanet === p.planet) tr.classList.add("active");
                     tr.innerHTML = `
-                        <td style="color:${p.color}">${p.planet.charAt(0).toUpperCase() + p.planet.slice(1)}</td>
-                        <td id="dev-val-${p.planet}">Loading...</td>
-                        <td><div class="dev-bar"><div class="dev-bar-fill" id="dev-bar-${p.planet}" style="width:0%;background:${p.color}"></div></div></td>
-                        <td id="dev-time-${p.planet}">-</td>
+                        <td style="color:${p.color};font-weight:500">${p.planet.charAt(0).toUpperCase() + p.planet.slice(1)}</td>
+                        <td class="dev-val" id="dv-${p.planet}">-</td>
+                        <td><div class="dev-bar"><div class="dev-bar-fill" id="db-${p.planet}" style="width:0%"></div></div></td>
+                        <td class="dev-val" id="df-${p.planet}">-</td>
                     `;
-                    tr.addEventListener("click", () => loadDevChart(p.planet));
+                    tr.addEventListener("click", () => showDevDetail(p.planet));
                     tbody.appendChild(tr);
 
-                    // Fetch live deviation
-                    fetch(`/api/deviation?planet=${p.planet}`)
+                    fetch(`/api/forecast?planet=${p.planet}`)
                         .then(r => r.json())
-                        .then(data => {
-                            if (data.deviation_km !== undefined) {
-                                document.getElementById(`dev-val-${p.planet}`).textContent =
-                                    data.deviation_km.toLocaleString() + " km";
-                                const pct = Math.min(100, data.deviation_km / 500);
-                                document.getElementById(`dev-bar-${p.planet}`).style.width = pct + "%";
-                                document.getElementById(`dev-time-${p.planet}`).textContent = data.date || "-";
+                        .then(d => {
+                            document.getElementById(`dv-${p.planet}`).textContent =
+                                d.deviation_km ? d.deviation_km.toLocaleString() + " km" : "-";
+                            const pct = Math.min(100, (d.deviation_km || 0) / 500);
+                            document.getElementById(`db-${p.planet}`).style.width = pct + "%";
+                            const f1h = d.forecasts.find(f => f.horizon_minutes === 60);
+                            if (f1h) {
+                                const dist = Math.sqrt(f1h.x_pred**2 + f1h.y_pred**2 + f1h.z_pred**2) * 149597870.7;
+                                document.getElementById(`df-${p.planet}`).textContent =
+                                    dist.toLocaleString() + " km";
                             }
+                            if (selectedDevPlanet === p.planet) updateDevDetail(d);
                         })
                         .catch(() => {});
                 });
             });
+
+        if (devInterval) clearInterval(devInterval);
+        devInterval = setInterval(() => loadDeviations(), 15000);
     };
 
+    window.showDevDetail = function(planet) {
+        selectedDevPlanet = planet;
+        document.querySelectorAll("#dev-table-body tr").forEach(r => r.classList.remove("active"));
+        const row = document.querySelector(`#dev-table-body tr[data-planet="${planet}"]`);
+        if (row) row.classList.add("active");
+
+        const detail = document.getElementById("dev-detail");
+        document.getElementById("dev-detail-title").textContent =
+            `Forecast: ${planet.charAt(0).toUpperCase() + planet.slice(1)}`;
+
+        fetch(`/api/forecast?planet=${planet}`)
+            .then(r => r.json())
+            .then(d => {
+                detail.classList.add("open");
+                updateDevDetail(d);
+            })
+            .catch(() => {});
+
+        loadDevChart(planet);
+    };
+
+    function updateDevDetail(d) {
+        const grid = document.getElementById("forecast-grid");
+        grid.innerHTML = "";
+        const allItems = [
+            { label: "Now", min: 0, actual: true },
+            ...d.forecasts
+        ];
+        allItems.forEach(f => {
+            const card = document.createElement("div");
+            card.className = "forecast-card";
+            if (f.actual) {
+                const dist = Math.sqrt(d.x_actual**2 + d.y_actual**2 + d.z_actual**2) * 149597870.7;
+                card.innerHTML = `
+                    <div class="h-label">Now</div>
+                    <div class="h-deviation">${d.deviation_km.toLocaleString()} km</div>
+                    <div class="h-coord">off from Kepler</div>
+                `;
+            } else {
+                const dist = Math.sqrt(f.x_pred**2 + f.y_pred**2 + f.z_pred**2) * 149597870.7;
+                card.innerHTML = `
+                    <div class="h-label">${f.label}</div>
+                    <div class="h-coord">${dist.toLocaleString()} km</div>
+                    <div class="h-coord" style="color:#555">waiting...</div>
+                `;
+            }
+            grid.appendChild(card);
+        });
+    }
+
     window.loadDevChart = function(planet) {
-        document.getElementById("dev-chart-title").textContent =
-            `Deviation: ${planet.charAt(0).toUpperCase() + planet.slice(1)} (last 30 days)`;
-        fetch(`/api/deviation/history?planet=${planet}&days=30`)
+        fetch(`/api/deviation/history?planet=${planet}&days=9999`)
             .then(r => r.json())
             .then(data => {
                 if (window._devChart) window._devChart.destroy();
+                if (!data.length) {
+                    document.getElementById("dev-chart").style.display = "none";
+                    return;
+                }
+                document.getElementById("dev-chart").style.display = "block";
                 const ctx = document.getElementById("dev-chart").getContext("2d");
+                const labels = data.map(d => d.date.slice(0, 7));
+                const vals = data.map(d => d.deviation_km);
                 window._devChart = new Chart(ctx, {
                     type: "line",
                     data: {
-                        labels: data.map(d => d.date),
+                        labels,
                         datasets: [{
-                            label: "Deviation (km)",
-                            data: data.map(d => d.deviation_km),
+                            label: "Kepler Error (km)",
+                            data: vals,
                             borderColor: "#4fc3f7",
-                            backgroundColor: "rgba(79,195,247,0.1)",
+                            backgroundColor: "rgba(79,195,247,0.05)",
                             fill: true,
                             tension: 0.3,
-                            pointRadius: 2,
+                            pointRadius: 0,
+                            borderWidth: 1,
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { ticks: { color: "#666", maxTicksLimit: 10 }, grid: { color: "#222" } },
-                            y: { ticks: { color: "#666" }, grid: { color: "#222" } }
+                            x: {
+                                ticks: { color: "#666", maxTicksLimit: 15, maxRotation: 45 },
+                                grid: { color: "#222" }
+                            },
+                            y: {
+                                ticks: { color: "#666", callback: v => (v/1e6).toFixed(1) + "M km" },
+                                grid: { color: "#222" }
+                            }
                         },
                         plugins: { legend: { labels: { color: "#aaa" } } }
                     }

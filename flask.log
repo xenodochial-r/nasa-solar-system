@@ -1,0 +1,16 @@
+
+Starting NASA JPL Server on http://0.0.0.0:5000
+Access: http://127.0.0.1:5000/ or http://192.168.1.111:5000/
+
+ * Serving Flask app 'flask_server'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.2.0.2:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 117-722-735
+127.0.0.1 - - [12/Jul/2026 11:16:37] "GET /api/forecast?planet=earth HTTP/1.1" 200 -
+127.0.0.1 - - [12/Jul/2026 11:16:42] "GET /api/deviation/history?planet=earth&days=9999 HTTP/1.1" 200 -

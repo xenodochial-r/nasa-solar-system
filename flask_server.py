@@ -217,6 +217,50 @@ def api_deviation_history():
     return jsonify(result.to_dict(orient="records"))
 
 
+@app.route("/api/forecast")
+def api_forecast():
+    planet = request.args.get("planet", "")
+    if not planet:
+        return jsonify({"error": "Missing required param: planet"}), 400
+    if planet not in PLANET_MAP:
+        return jsonify({"error": f"Unknown planet: {planet}"}), 400
+    if toolkit is None:
+        return jsonify({"error": "Toolkit not initialized"}), 503
+
+    try:
+        from datetime import timezone
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        x, y, z = toolkit.get_position(planet, now)
+        xp_now, yp_now, zp_now = toolkit.compute_kepler_prediction(planet, now)
+        deviation_now = round(np.sqrt((x - xp_now)**2 + (y - yp_now)**2 + (z - zp_now)**2) * AU_TO_KM, 1)
+
+        horizons = [1, 10, 60, 180, 1440, 4320]  # 1min, 10min, 1h, 3h, 1d, 3d
+        forecasts = []
+        for h in horizons:
+            future = now + timedelta(minutes=h)
+            xp, yp, zp = toolkit.compute_kepler_prediction(planet, future)
+            forecasts.append({
+                "horizon_minutes": h,
+                "label": f"+{h}m" if h < 1440 else f"+{h//1440}d",
+                "target_time": future.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
+                "x_pred": round(xp, 6),
+                "y_pred": round(yp, 6),
+                "z_pred": round(zp, 6),
+            })
+
+        return jsonify({
+            "planet": planet,
+            "current_time": now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
+            "x_actual": round(x, 6),
+            "y_actual": round(y, 6),
+            "z_actual": round(z, 6),
+            "deviation_km": deviation_now,
+            "forecasts": forecasts
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/status")
 def api_status():
     return jsonify({
