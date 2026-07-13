@@ -137,6 +137,27 @@
         .dev-refresh { display: inline-block; margin-left: 12px; font-size: 11px; color: #555; cursor: pointer; }
         .dev-refresh:hover { color: #4fc3f7; }
 
+        /* Live Forecast Tracker */
+        .tracker-section { margin-bottom: 16px; }
+        .tracker-section h3 { color: #888; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .tracker-list { max-height: 240px; overflow-y: auto; border: 1px solid #1a1a2a; border-radius: 8px; }
+        .tracker-entry {
+            display: grid; grid-template-columns: 40px 1fr 1fr auto auto; gap: 6px;
+            padding: 6px 10px; font-size: 11px; border-bottom: 1px solid #111;
+            align-items: center;
+        }
+        .tracker-entry:last-child { border-bottom: none; }
+        .tracker-entry .t-label { color: #555; font-weight: 500; }
+        .tracker-entry .t-pred { color: #777; font-variant-numeric: tabular-nums; }
+        .tracker-entry .t-actual { color: #aaa; font-variant-numeric: tabular-nums; }
+        .tracker-entry .t-error { color: #4fc3f7; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .tracker-entry .t-pending { color: #555; font-style: italic; }
+        .tracker-entry:hover { background: #0a0a15; }
+        .tracker-clear {
+            font-size: 10px; color: #555; cursor: pointer; margin-left: 8px;
+        }
+        .tracker-clear:hover { color: #f44336; }
+
         /* SPICE Tab */
         #spice-tab {
             flex-direction: column; align-items: center; justify-content: center;
@@ -219,6 +240,12 @@
             <div class="dev-detail" id="dev-detail">
                 <h3 id="dev-detail-title"></h3>
                 <div class="forecast-grid" id="forecast-grid"></div>
+                <div class="tracker-section">
+                    <h3>Live Forecast Tracker <span class="tracker-clear" id="tracker-clear">clear</span></h3>
+                    <div class="tracker-list" id="tracker-list">
+                        <div style="color:#555;padding:10px;font-size:11px;text-align:center">Waiting for forecasts...</div>
+                    </div>
+                </div>
                 <div class="dev-chart-container">
                     <canvas id="dev-chart"></canvas>
                 </div>
@@ -263,7 +290,7 @@
     <!-- App Scripts (cache-bust) -->
     <script src="/static/js/planets.js?v=5"></script>
     <script src="/static/js/main.js?v=5"></script>
-    <script src="/static/js/ui.js?v=5"></script>
+    <script src="/static/js/ui.js?v=6"></script>
     <script src="/static/js/deviations.js?v=2"></script>
     <script>
         requestAnimationFrame(function() {

@@ -208,17 +208,28 @@
         const row = document.querySelector(`#dev-table-body tr[data-planet="${planet}"]`);
         if (row) row.classList.add("active");
 
+        forecastHistory.length = 0;
+
         const detail = document.getElementById("dev-detail");
         document.getElementById("dev-detail-title").textContent =
             `Forecast: ${planet.charAt(0).toUpperCase() + planet.slice(1)}`;
 
-        fetch(`/api/forecast?planet=${planet}`)
-            .then(r => r.json())
-            .then(d => {
-                detail.classList.add("open");
-                updateDevDetail(d);
-            })
-            .catch(() => {});
+        const fetchForecast = () => {
+            fetch(`/api/forecast?planet=${planet}`)
+                .then(r => r.json())
+                .then(d => {
+                    if (selectedDevPlanet === planet) {
+                        detail.classList.add("open");
+                        updateDevDetail(d);
+                    }
+                })
+                .catch(() => {});
+        };
+
+        if (trackerInterval) clearInterval(trackerInterval);
+        fetchForecast();
+        trackerInterval = setInterval(fetchForecast, 15000);
+        renderTracker();
 
         loadDevChart(planet);
     };
@@ -250,7 +261,74 @@
             }
             grid.appendChild(card);
         });
+
+        addForecastEntry(d);
     }
+
+    // -----------------------------------------------------------------------
+    //  LIVE FORECAST TRACKER
+    // -----------------------------------------------------------------------
+    window.forecastHistory = [];
+    let trackerInterval = null;
+
+    function addForecastEntry(d) {
+        const now = new Date(d.current_time);
+        const f1m = d.forecasts.find(f => f.horizon_minutes === 1);
+        if (!f1m) return;
+
+        const entry = {
+            time: now,
+            targetTime: new Date(f1m.target_time),
+            x_pred: f1m.x_pred,
+            y_pred: f1m.y_pred,
+            z_pred: f1m.z_pred,
+            checked: false,
+            x_actual: null, y_actual: null, z_actual: null, error_km: null
+        };
+
+        forecastHistory.forEach(e => {
+            if (!e.checked && e.targetTime <= now) {
+                e.checked = true;
+                e.x_actual = d.x_actual;
+                e.y_actual = d.y_actual;
+                e.z_actual = d.z_actual;
+                const dx = e.x_actual - e.x_pred;
+                const dy = e.y_actual - e.y_pred;
+                const dz = e.z_actual - e.z_pred;
+                e.error_km = Math.round(Math.sqrt(dx*dx + dy*dy + dz*dz) * 149597870.7);
+            }
+        });
+
+        if (forecastHistory.length > 50) forecastHistory.splice(0, forecastHistory.length - 50);
+        forecastHistory.push(entry);
+        renderTracker();
+    }
+
+    function renderTracker() {
+        const list = document.getElementById("tracker-list");
+        if (!list) return;
+        if (!forecastHistory.length) {
+            list.innerHTML = '<div style="color:#555;padding:10px;font-size:11px;text-align:center">Waiting for forecasts...</div>';
+            return;
+        }
+        list.innerHTML = forecastHistory.slice().reverse().map(e => {
+            const t = e.time;
+            const ts = String(t.getHours()).padStart(2,"0") + ":" + String(t.getMinutes()).padStart(2,"0") + ":" + String(t.getSeconds()).padStart(2,"0");
+            const p = `(${e.x_pred.toFixed(3)}, ${e.y_pred.toFixed(3)}, ${e.z_pred.toFixed(3)})`;
+            if (e.checked && e.error_km !== null) {
+                const a = `(${e.x_actual.toFixed(3)}, ${e.y_actual.toFixed(3)}, ${e.z_actual.toFixed(3)})`;
+                return `<div class="tracker-entry"><span class="t-label">${ts}</span><span class="t-pred">${p}</span><span class="t-actual">${a}</span><span class="t-error">${e.error_km.toLocaleString()} km</span></div>`;
+            }
+            return `<div class="tracker-entry"><span class="t-label">${ts}</span><span class="t-pred">${p}</span><span class="t-pending">waiting...</span><span></span></div>`;
+        }).join('');
+    }
+
+    document.addEventListener("click", function(e) {
+        if (e.target && e.target.id === "tracker-clear") {
+            forecastHistory.length = 0;
+            renderTracker();
+        }
+    });
 
     window.loadDevChart = function(planet) {
         fetch(`/api/deviation/history?planet=${planet}&days=9999`)
