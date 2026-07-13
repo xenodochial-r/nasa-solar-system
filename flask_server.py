@@ -25,6 +25,24 @@ from jpl_toolkit import (
 app = Flask(__name__)
 toolkit = None
 
+# Obliquity of the ecliptic at J2000
+ECLIPTIC_OBLIQUITY_RAD = np.radians(23.4392911)
+_EC_COS = np.cos(ECLIPTIC_OBLIQUITY_RAD)
+_EC_SIN = np.sin(ECLIPTIC_OBLIQUITY_RAD)
+
+
+def icrf_to_ecliptic(x, y, z):
+    """Convert ICRF (equatorial) to planets.js ecliptic convention.
+
+    ICRF:      X=vernal equinox,  Y=90° in equatorial,   Z=celestial north
+    planets.js: X=vernal equinox, Y=ecliptic north,       Z=90° from X in ecliptic
+    """
+    return (
+        x,
+        -y * _EC_SIN + z * _EC_COS,
+        y * _EC_COS + z * _EC_SIN,
+    )
+
 
 def ensure_data():
     """Check if Parquet files exist. If not, compute everything."""
@@ -138,6 +156,7 @@ def api_live():
         from datetime import timezone
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         x, y, z = toolkit.get_position(planet, now)
+        x, y, z = icrf_to_ecliptic(x, y, z)
 
         # Kepler prediction for same time
         xp, yp, zp = toolkit.compute_kepler_prediction(planet, now)
@@ -165,6 +184,7 @@ def api_live_all():
         planets = {}
         for name in PLANET_MAP:
             x, y, z = toolkit.get_position(name, now)
+            x, y, z = icrf_to_ecliptic(x, y, z)
             xp, yp, zp = toolkit.compute_kepler_prediction(name, now)
             dev = round(np.sqrt((x - xp)**2 + (y - yp)**2 + (z - zp)**2) * AU_TO_KM, 1)
             planets[name] = {"x": x, "y": y, "z": z, "deviation_km": dev}
@@ -192,6 +212,7 @@ def api_deviation():
         from datetime import timezone
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         x, y, z = toolkit.get_position(planet, now)
+        x, y, z = icrf_to_ecliptic(x, y, z)
         xp, yp, zp = toolkit.compute_kepler_prediction(planet, now)
         deviation_km = np.sqrt((x - xp)**2 + (y - yp)**2 + (z - zp)**2) * AU_TO_KM
 
@@ -253,6 +274,7 @@ def api_forecast():
         from datetime import timezone
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         x, y, z = toolkit.get_position(planet, now)
+        x, y, z = icrf_to_ecliptic(x, y, z)
         xp_now, yp_now, zp_now = toolkit.compute_kepler_prediction(planet, now)
         deviation_now = round(np.sqrt((x - xp_now)**2 + (y - yp_now)**2 + (z - zp_now)**2) * AU_TO_KM, 1)
 
