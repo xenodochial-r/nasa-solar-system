@@ -27,6 +27,38 @@ let labelsVisible = true;
 let labelElements = {};
 let labelOverlay = null;
 
+// API live positions (Skyfield)
+let apiPositions = {};
+let apiPollId = null;
+let apiStatusText = "";
+
+function fetchApiPositions() {
+    if (!isLive) return;
+    fetch("/api/live/all")
+        .then(r => r.json())
+        .then(data => {
+            if (!isLive) return;
+            apiPositions = data.planets || {};
+            apiStatusText = "Skyfield " + (data.date ? data.date.slice(11, 19) : "");
+        })
+        .catch(() => {});
+}
+
+function startLiveApiPoll() {
+    if (apiPollId) return;
+    fetchApiPositions();
+    apiPollId = setInterval(fetchApiPositions, 15000);
+}
+
+function stopLiveApiPoll() {
+    if (apiPollId) {
+        clearInterval(apiPollId);
+        apiPollId = null;
+    }
+    apiPositions = {};
+    apiStatusText = "";
+}
+
 function initScene() {
     const container = document.getElementById("canvas-container");
 
@@ -247,7 +279,13 @@ function updateLabels() {
 // ---------------------------------------------------------------------------
 function updatePlanetPositions(date) {
     for (const [key, planet] of Object.entries(PLANETS)) {
-        const pos = keplerPosition(planet, date);
+        let pos;
+        if (isLive && apiPositions[key]) {
+            const ap = apiPositions[key];
+            pos = { x: ap.x, y: ap.y, z: ap.z };
+        } else {
+            pos = keplerPosition(planet, date);
+        }
         planetMeshes[key].position.set(pos.x * SCALE, pos.y * SCALE, pos.z * SCALE);
         planetMeshes[key].rotation.y += 0.002 * speed;
     }
@@ -279,6 +317,20 @@ function animate() {
             currentDate = new Date(currentDate.getTime() + speed * 0.003 * 86400000);
         }
         updatePlanetPositions(currentDate);
+    }
+
+    const apiEl = document.getElementById("api-status");
+    if (apiEl) {
+        if (isLive && apiStatusText) {
+            apiEl.textContent = "☉ " + apiStatusText;
+            apiEl.classList.add("active");
+        } else if (isLive) {
+            apiEl.textContent = "☉ Kepler (cached)";
+            apiEl.classList.remove("active");
+        } else {
+            apiEl.textContent = "";
+            apiEl.classList.remove("active");
+        }
     }
 
     if (sunMesh) sunMesh.rotation.y += 0.001;

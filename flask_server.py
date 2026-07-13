@@ -154,6 +154,28 @@ def api_live():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/live/all")
+def api_live_all():
+    if toolkit is None:
+        return jsonify({"error": "Toolkit not initialized"}), 503
+
+    try:
+        from datetime import timezone
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        planets = {}
+        for name in PLANET_MAP:
+            x, y, z = toolkit.get_position(name, now)
+            xp, yp, zp = toolkit.compute_kepler_prediction(name, now)
+            dev = round(np.sqrt((x - xp)**2 + (y - yp)**2 + (z - zp)**2) * AU_TO_KM, 1)
+            planets[name] = {"x": x, "y": y, "z": z, "deviation_km": dev}
+        return jsonify({
+            "date": now.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
+            "planets": planets
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/deviation")
 def api_deviation():
     planet = request.args.get("planet", "")

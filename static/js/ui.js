@@ -33,6 +33,7 @@
         currentDate = new Date(MIN_DATE + pct * TOTAL_MS);
         isLive = false;
         btnToday.classList.remove("active");
+        if (typeof stopLiveApiPoll === "function") stopLiveApiPoll();
     });
 
     // Speed slider
@@ -51,6 +52,7 @@
         // Update slider to current position
         const pct = (currentDate.getTime() - MIN_DATE) / TOTAL_MS;
         timeSlider.value = Math.min(100, Math.max(0, pct * 100));
+        if (typeof startLiveApiPoll === "function") startLiveApiPoll();
     });
 
     // Pause button
@@ -78,6 +80,7 @@
         btnPause.textContent = "Pause";
         btnToday.classList.remove("active");
         timeSlider.value = 76;
+        if (typeof stopLiveApiPoll === "function") stopLiveApiPoll();
     });
 
     // Labels toggle
