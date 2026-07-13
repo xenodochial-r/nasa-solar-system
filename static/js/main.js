@@ -31,8 +31,6 @@ let labelOverlay = null;
 let apiPositions = {};
 let apiPollId = null;
 let apiStatusText = "";
-let orbitOffsets = {};
-let originalOrbitPoints = {};
 
 function fetchApiPositions() {
     if (!isLive) return;
@@ -51,23 +49,18 @@ function alignOrbitsToApi(dateStr) {
     if (!dateStr) return;
     const apiDate = new Date(dateStr);
     for (const [key, planet] of Object.entries(PLANETS)) {
-        if (!apiPositions[key] || !originalOrbitPoints[key]) continue;
+        if (!apiPositions[key] || !orbitLines[key]) continue;
         const ap = apiPositions[key];
         const kp = keplerPosition(planet, apiDate);
-        orbitOffsets[key] = {
-            x: (ap.x - kp.x) * SCALE,
-            y: (ap.y - kp.y) * SCALE,
-            z: (ap.z - kp.z) * SCALE,
-        };
-        const orig = originalOrbitPoints[key];
-        const pts = orig.map(p => new THREE.Vector3(
-            p.x + orbitOffsets[key].x,
-            p.y + orbitOffsets[key].y,
-            p.z + orbitOffsets[key].z
-        ));
-        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        const apAngle = Math.atan2(ap.z, ap.x);
+        const kpAngle = Math.atan2(kp.z, kp.x);
+        const phaseShift = apAngle - kpAngle;
+        const saved = planet.startAngle;
+        planet.startAngle += phaseShift;
+        const pts = orbitPath(planet, 256).map(p => new THREE.Vector3(p.x * SCALE, p.y * SCALE, p.z * SCALE));
+        planet.startAngle = saved;
         orbitLines[key].geometry.dispose();
-        orbitLines[key].geometry = geo;
+        orbitLines[key].geometry = new THREE.BufferGeometry().setFromPoints(pts);
     }
 }
 
@@ -84,12 +77,18 @@ function stopLiveApiPoll() {
     }
     apiPositions = {};
     apiStatusText = "";
-    orbitOffsets = {};
-    for (const [key, orig] of Object.entries(originalOrbitPoints)) {
-        if (orbitLines[key]) {
-            orbitLines[key].geometry.dispose();
-            orbitLines[key].geometry = new THREE.BufferGeometry().setFromPoints(orig);
-        }
+    restoreDefaultOrbits();
+}
+
+function restoreDefaultOrbits() {
+    for (const [key, planet] of Object.entries(PLANETS)) {
+        if (!orbitLines[key]) continue;
+        const saved = planet.startAngle;
+        planet.startAngle = planet._originalStartAngle || planet.startAngle;
+        const pts = orbitPath(planet, 256).map(p => new THREE.Vector3(p.x * SCALE, p.y * SCALE, p.z * SCALE));
+        planet.startAngle = saved;
+        orbitLines[key].geometry.dispose();
+        orbitLines[key].geometry = new THREE.BufferGeometry().setFromPoints(pts);
     }
 }
 
@@ -231,9 +230,9 @@ function createPlanets() {
         }
 
         // Orbit line (with inclination)
-        const rawPoints = orbitPath(planet, 256).map(p => new THREE.Vector3(p.x * SCALE, p.y * SCALE, p.z * SCALE));
-        originalOrbitPoints[key] = rawPoints;
-        const oGeo = new THREE.BufferGeometry().setFromPoints(rawPoints);
+        const orbitPoints = orbitPath(planet, 256).map(p => new THREE.Vector3(p.x * SCALE, p.y * SCALE, p.z * SCALE));
+        planet._originalStartAngle = planet.startAngle;
+        const oGeo = new THREE.BufferGeometry().setFromPoints(orbitPoints);
         const oMat = new THREE.LineBasicMaterial({ color: planet.color, transparent: true, opacity: 0.10 });
         const oLine = new THREE.Line(oGeo, oMat);
         scene.add(oLine);
